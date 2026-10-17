@@ -1,0 +1,28 @@
+
+
+
+meu_agente_triagem/
+│
+├── .env                    # Chaves de API (OpenAI, LangSmith)
+├── requirements.txt        # Dependências (streamlit, langgraph, langchain...)
+├── app.py                  # Ponto de entrada do Streamlit (Apenas Interface UI)
+│
+├── core/                   # O "Cérebro" do LangGraph
+│   ├── __init__.py
+│   ├── state.py            # Define as variáveis que viajam pelo grafo (AgentState)
+│   ├── graph.py            # Onde você desenha os nós e arestas (workflow)
+│   └── prompts.py          # Os textos de instrução (System Prompts) do agente
+│
+├── tools/                  # As Ferramentas que o agente pode usar
+│   ├── __init__.py
+│   ├── clinical_tools.py   # Calculadoras de risco (MEWS, qSOFA)
+│   ├── search_tools.py     # Busca em protocolos ou histórico (RAG)
+│   └── system_tools.py     # Checar leitos, médicos de plantão, agenda
+│
+└── utils/                  # Funções de apoio
+    └── logger.py           # Configuração extra de logs, se necessário
+
+
+New-Item -Path "meu_agente_triagem" -ItemType Directory; set-location "meu_agente_triagem"; New-Item -Path "core", "tools", "utils" -ItemType Directory; New-Item -Path ".env", "requirements.txt", "app.py", "core\__init__.py", "core\state.py", "core\graph.py", "core\prompts.py", "tools\__init__.py", "tools\clinical_tools.py", "tools\search_tools.py", "tools\system_tools.py", "utils\logger.py" -ItemType File
+
+pip install -r requirements.txt

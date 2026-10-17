@@ -1,0 +1,22 @@
+# Variáveis de ambiente e segredos (CRÍTICO)
+.env
+.env.*
+
+# Ambientes Virtuais Python
+.venv/
+venv/
+env/
+
+# Ficheiros de cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ficheiros do sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs e bases de dados locais (se vier a usar)
+*.log
+*.sqlite3

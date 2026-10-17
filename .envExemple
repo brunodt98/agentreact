@@ -1,0 +1,7 @@
+# 1. Chave da OpenAI (Para o modelo de linguagem funcionar)
+OPENAI_API_KEY="sk-proj-sua-chave-da-openai-aqui"
+
+# 2. Configurações do LangSmith (Para rastreamento e auditoria)
+LANGCHAIN_TRACING_V2="true"
+LANGCHAIN_API_KEY="lsv2_pt_sua-chave-do-langsmith-aqui"
+LANGCHAIN_PROJECT="agente_triagem_v1"
