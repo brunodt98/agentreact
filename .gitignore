@@ -20,3 +20,5 @@ Thumbs.db
 # Logs e bases de dados locais (se vier a usar)
 *.log
 *.sqlite3
+# Testes
+.pytest_cache/

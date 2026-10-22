@@ -4,7 +4,12 @@ Importa as ferramentas clínicas, de sistema e de pesquisa para as expor como um
 """
 
 from .clinical_tools import calcular_escore_gravidade
-from .system_tools import consultar_leitos, buscar_medico_plantao
+from .system_tools import (
+    FERRAMENTAS_SENSIVEIS,
+    acionar_equipe_emergencia,
+    buscar_medico_plantao,
+    consultar_leitos,
+)
 from .search_tools import buscar_protocolo_interno
 
 # Agrupamos todas as ferramentas numa lista constante.
@@ -12,14 +17,17 @@ ALL_TOOLS = [
     calcular_escore_gravidade,
     consultar_leitos,
     buscar_medico_plantao,
-    buscar_protocolo_interno
+    buscar_protocolo_interno,
+    acionar_equipe_emergencia,
 ]
 
 # O __all__ define exatamente o que será exportado
 __all__ = [
     "ALL_TOOLS",
+    "FERRAMENTAS_SENSIVEIS",
     "calcular_escore_gravidade",
     "consultar_leitos",
     "buscar_medico_plantao",
-    "buscar_protocolo_interno"
+    "buscar_protocolo_interno",
+    "acionar_equipe_emergencia",
 ]

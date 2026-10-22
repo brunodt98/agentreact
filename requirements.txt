@@ -1,8 +1,10 @@
-streamlit
-langgraph
-langchain
-langchain-core
-langchain-google-genai
-langchain-openai
-pydantic
-python-dotenv
+# Aplicação
+streamlit>=1.66,<2
+langgraph>=1.2,<2
+langchain-core>=1.6,<2
+langchain-google-genai>=4.4,<5
+pydantic>=2.14,<3
+python-dotenv>=1.2,<2
+
+# Testes
+pytest>=9.1,<10

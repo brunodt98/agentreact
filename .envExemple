@@ -1,5 +1,8 @@
-# 1. Chave da OpenAI (Para o modelo de linguagem funcionar)
-OPENAI_API_KEY="sk-proj-sua-chave-da-openai-aqui"
+# 1. Chave do Google Gemini (modelo de linguagem) - https://aistudio.google.com/apikey
+GOOGLE_API_KEY="sua-chave-do-google-gemini-aqui"
+
+# Opcional: troca o modelo (padrão: gemini-2.5-flash)
+# TRIAGEM_MODELO="gemini-2.5-flash"
 
 # 2. Configurações do LangSmith (Para rastreamento e auditoria)
 LANGCHAIN_TRACING_V2="true"

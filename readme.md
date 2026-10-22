@@ -13,17 +13,45 @@ Este projeto foi construído utilizando um ecossistema moderno de IA Generativa 
 *   **[Streamlit](https://streamlit.io/):** Interface de usuário (UI) simples e interativa, simulando o chat de triagem.
 *   **[LangGraph](https://python.langchain.com/v0.1/docs/langgraph/):** Gerenciamento de estado (StateGraph) e fluxo do agente, permitindo memória contínua e a funcionalidade de *Human-in-the-loop*.
 *   **[LangChain](https://www.langchain.com/):** Framework base para integração das ferramentas e chamadas ao LLM.
-*   **Google Gemini (1.5 / 2.5 Flash):** Modelo fundacional (LLM) configurado com `temperature=0.0` para respostas determinísticas.
+*   **Google Gemini (2.5 Flash, configurável via `TRIAGEM_MODELO`):** Modelo fundacional (LLM) configurado com `temperature=0.0` para respostas determinísticas.
+*   **[pytest](https://docs.pytest.org/):** Testes das regras clínicas e do fluxo do grafo (com LLM simulado).
 *   **[Pydantic](https://docs.pydantic.dev/):** Camada de validação de dados estrita para garantir que as ferramentas clínicas recebam exatamente os tipos de dados esperados (ex: números inteiros para batimentos cardíacos).
+
+## 🔀 Fluxo do grafo
+
+```
+START → red_flags → agent ──(resposta)──────────────→ END
+                      │  ↑
+                      │  └── registrar_resultados ← tools
+                      │                               ↑
+                      └──(ação sensível)→ aprovacao_humana (pausa: enfermeiro aprova/rejeita)
+```
+
+*   **`red_flags`:** detecta por regra em Python (não pelo LLM) os Sintomas de Risco Imediato — dor torácica, dificuldade respiratória grave, perda de consciência, sangramento massivo e suspeita de AVC — e força a classificação **VERMELHO**. Sintomas negados ("nega dor no peito") são ignorados.
+*   **`agent`:** o LLM recebe o system prompt + um bloco com o estado estruturado já apurado (sinais de alarme, sinais vitais, MEWS).
+*   **`tools`:** executa as ferramentas; erros de validação voltam ao LLM para que ele pergunte ao enfermeiro.
+*   **`registrar_resultados`:** copia os resultados numéricos das ferramentas para o estado (`sinais_vitais`, `escore_mews`, `classificacao`). A classificação final é sempre **a mais grave** entre MEWS e sinais de alarme.
+*   **`aprovacao_humana`:** *human-in-the-loop* com `interrupt` do LangGraph. Ações que afetam o mundo real só rodam após o enfermeiro aprovar na interface.
 
 ## 🛠️ Ferramentas do Agente (Tools)
 
-O agente tem autonomia para chamar as seguintes ferramentas em Python de acordo com o relato do paciente:
+1.  `calcular_escore_gravidade`: calcula o **MEWS** (Modified Early Warning Score) com validação Pydantic (faixas fisiológicas e AVPU). Se faltar algum sinal vital, **não calcula** e devolve a lista do que falta — o modelo não precisa (nem pode) inventar valores.
+2.  `consultar_leitos`: simula a consulta de vagas por ala (UTI, Enfermarias, Emergência).
+3.  `buscar_medico_plantao`: consulta a escala e retorna o especialista de plantão e seu ramal.
+4.  `buscar_protocolo_interno`: base simulada de protocolos (Dor Torácica, Sepse, AVC).
+5.  `acionar_equipe_emergencia`: aciona o código vermelho. **Exige aprovação do enfermeiro.**
 
-1.  `calcular_escore_gravidade`: Recebe sinais vitais validados e calcula o risco clínico baseado no protocolo MEWS (Modified Early Warning Score), retornando classificação de cores (Vermelho, Amarelo, Verde).
-2.  `consultar_leitos`: Simula uma consulta ao banco de dados do hospital para verificar vagas em alas específicas (ex: UTI, Enfermaria).
-3.  `buscar_medico_plantao`: Consulta a escala de RH para retornar o médico especialista disponível e seu ramal.
-4.  `buscar_protocolo_interno`: Sistema simulado de RAG (Retrieval-Augmented Generation) para buscar diretrizes hospitalares específicas (ex: Protocolo de AVC ou Sepse).
+### Regras do MEWS
+
+| Parâmetro | 3 | 2 | 1 | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|---|---|---|
+| PA sistólica (mmHg) | ≤70 | 71–80 | 81–100 | 101–199 | | ≥200 | |
+| FC (bpm) | | <40 | 41–50 | 51–100 | 101–110 | 111–129 | ≥130 |
+| FR (irpm) | | <9 | | 9–14 | 15–20 | 21–29 | ≥30 |
+| Temperatura (°C) | | <35 | | 35–38,4 | | ≥38,5 | |
+| Consciência (AVPU) | | | | Alerta | Voz | Dor | Inconsciente |
+
+**Classificação:** VERMELHO se escore ≥ 5 ou inconsciente · AMARELO se escore 3–4 ou algum parâmetro isolado com 3 pontos · VERDE nos demais casos.
 
 ## 🚀 Como instalar e rodar localmente
 
@@ -64,11 +92,20 @@ LANGCHAIN_PROJECT="agente_triagem_v1"
 streamlit run app.py
 ```
 
+### 6. Rode os testes
+Os testes usam um LLM falso, então não precisam de chave de API nem de internet:
+```bash
+pytest
+```
+
 ## 🔒 Regras de Segurança (System Prompt)
 O agente foi instruído estritamente para:
 - **Nunca** inventar diagnósticos médicos.
 - Solicitar informações ausentes de sinais vitais antes de acionar a calculadora de risco.
 - Basear o encaminhamento **apenas** no retorno matemático das funções Python, isolando o raciocínio clínico da inferência do LLM.
+- **Nunca** rebaixar uma classificação calculada pelo sistema.
+
+Além do prompt, as regras críticas são garantidas **em código**: detecção de sinais de alarme, validação dos sinais vitais, combinação das classificações e aprovação humana para ações sensíveis.
 
 ---
 *Desenvolvido como projeto de estudo prático sobre Agentes Autônomos em Saúde.*
