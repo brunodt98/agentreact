@@ -42,13 +42,17 @@ def red_flags_node(state: TriageState):
     if not isinstance(ultima, HumanMessage):
         return {}
 
+    # Mensagem nova de um paciente que já tinha saído da fila: ele volta para a fila do plantão
+    atualizacao = {"atendido": False} if state.get("atendido") else {}
+
     novas = detectar_red_flags(conteudo_para_texto(ultima.content))
     if not novas:
-        return {}
+        return atualizacao
 
     acumuladas = list(dict.fromkeys((state.get("red_flags") or []) + novas))
     logger.warning("Sinais de alarme detectados: %s", novas)
     return {
+        **atualizacao,
         "red_flags": acumuladas,
         "classificacao": pior_classificacao("VERMELHO", state.get("classificacao_news2")),
     }

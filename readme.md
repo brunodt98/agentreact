@@ -33,6 +33,17 @@ START → red_flags → agent ──(resposta)───────────�
 *   **`registrar_resultados`:** copia os resultados numéricos das ferramentas para o estado (`idade`, `sinais_vitais`, `escore_news2`, `classificacao`). A classificação final é sempre **a mais grave** entre NEWS2 e sinais de alarme.
 *   **`aprovacao_humana`:** *human-in-the-loop* com `interrupt` do LangGraph. Ações que afetam o mundo real só rodam após o enfermeiro aprovar na interface.
 
+## 🏥 Painel do Plantão
+
+A aplicação abre na página **Plantão**, pensada para quem assume o turno:
+
+*   **Indicadores:** pacientes na fila (por cor), maior espera, leitos livres e médicos disponíveis.
+*   **Fila de pacientes:** montada a partir das triagens feitas no app, da mais grave para a menos grave, com tempo de espera e alerta quando passa da meta (vermelho: imediato · amarelo: 60 min · verde: 120 min, configurável em `core/fila.py`). Cada paciente pode ser **aberto** na triagem ou marcado como **atendido**.
+*   **Pendências:** autorizações aguardando o enfermeiro, vermelhos sem equipe acionada, esperas acima da meta, alas lotadas e especialistas indisponíveis.
+*   **Leitos e equipe:** ocupação por ala e status de cada médico de plantão (dados simulados em `core/hospital.py`, os mesmos usados pelas ferramentas do agente).
+
+O painel se atualiza sozinho a cada 30 segundos. A fila vive na memória do servidor: reiniciar o Streamlit zera os pacientes.
+
 ## 🛠️ Ferramentas do Agente (Tools)
 
 1.  `calcular_escore_gravidade`: calcula o **NEWS2** (National Early Warning Score 2) com validação Pydantic (faixas fisiológicas e ACVPU). Se faltar algum dado, **não calcula** e devolve a lista do que falta — o modelo não precisa (nem pode) inventar valores. Para **menores de 16 anos**, informa que o escore adulto não se aplica.

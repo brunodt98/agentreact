@@ -37,3 +37,6 @@ class TriageState(TypedDict):
 
     # True depois que o enfermeiro aprovou o acionamento da equipe de emergência
     emergencia_acionada: NotRequired[bool]
+
+    # True quando o paciente sai da fila do plantão (já foi atendido/encaminhado)
+    atendido: NotRequired[bool]

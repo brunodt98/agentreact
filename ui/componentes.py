@@ -198,16 +198,14 @@ _AVATAR_URI = "data:image/png;base64," + b64encode((_ASSETS / "assistente.png").
 # --- 3. COMPONENTES ---
 
 
-def cabecalho(codigo_paciente: str, inicio: str) -> str:
+def cabecalho(titulo: str, subtitulo: str, pilulas: list[str]) -> str:
+    pilulas_html = "".join(f'<span class="tr-pill">{escape(p)}</span>' for p in pilulas)
     return (
         '<div class="tr-header">'
         f'<div class="tr-brand"><div class="tr-logo">{_LOGO}</div>'
-        '<div><div class="tr-title">Triagem Clínica</div>'
-        '<div class="tr-sub">Pronto-Socorro · Classificação de risco assistida (NEWS2)</div></div></div>'
-        '<div class="tr-meta">'
-        f'<span class="tr-pill">Paciente #{escape(codigo_paciente)}</span>'
-        f'<span class="tr-pill">Início {escape(inicio)}</span>'
-        '</div></div>'
+        f'<div><div class="tr-title">{escape(titulo)}</div>'
+        f'<div class="tr-sub">{escape(subtitulo)}</div></div></div>'
+        f'<div class="tr-meta">{pilulas_html}</div></div>'
     )
 
 

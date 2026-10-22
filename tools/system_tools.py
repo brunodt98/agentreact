@@ -3,6 +3,7 @@ from datetime import datetime
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from core.hospital import ESCALA_PLANTAO, LEITOS, vagas
 from utils.logger import logger
 from utils.text import normalizar
 
@@ -15,7 +16,7 @@ class ConsultaLeitosInput(BaseModel):
 
 class BuscaMedicoInput(BaseModel):
     especialidade: str = Field(
-        description="A especialidade médica necessária. Ex: 'Cardiologia', 'Neurologia', 'Clínica Geral', 'Pediatria', 'Ortopedia'."
+        description="A especialidade médica necessária. Ex: 'Cardiologia', 'Neurologia', 'Clínica Geral', 'Pediatria', 'Ortopedia', 'Cirurgia Geral'."
     )
 
 class AcionarEmergenciaInput(BaseModel):
@@ -27,22 +28,7 @@ class AcionarEmergenciaInput(BaseModel):
         description="Especialidade a ser acionada junto com a equipe de emergência. Ex: 'Cardiologia', 'Neurologia'."
     )
 
-# --- 2. DADOS SIMULADOS (MOCKS) ---
-
-VAGAS_HOSPITAL = {
-    "UTI": 2,
-    "Enfermaria Adulto": 15,
-    "Enfermaria Pediátrica": 4,
-    "Emergência": 0,
-}
-
-ESCALA_PLANTAO = {
-    "Cardiologia": {"nome": "Dr. Carlos Mendes", "ramal": "404", "status": "Disponível"},
-    "Neurologia": {"nome": "Dra. Ana Silva", "ramal": "412", "status": "Em cirurgia"},
-    "Clínica Geral": {"nome": "Dr. Roberto Gomes", "ramal": "100", "status": "Disponível"},
-    "Pediatria": {"nome": "Dra. Julia Costa", "ramal": "205", "status": "Disponível"},
-    "Ortopedia": {"nome": "Dr. Fernando Souza", "ramal": "330", "status": "Disponível"},
-}
+# --- 2. DADOS DO HOSPITAL (simulados, em core/hospital.py) ---
 
 
 def _buscar_chave(valor: str, opcoes) -> str | None:
@@ -57,11 +43,11 @@ def consultar_leitos(ala: str) -> str:
     """
     Consulta o sistema de gestão hospitalar para verificar a disponibilidade de leitos em uma ala específica.
     """
-    ala_encontrada = _buscar_chave(ala, VAGAS_HOSPITAL)
+    ala_encontrada = _buscar_chave(ala, LEITOS)
     if ala_encontrada is None:
-        return f"Erro: A ala '{ala}' não foi encontrada no sistema. Alas válidas: {', '.join(VAGAS_HOSPITAL)}."
+        return f"Erro: A ala '{ala}' não foi encontrada no sistema. Alas válidas: {', '.join(LEITOS)}."
 
-    qtd = VAGAS_HOSPITAL[ala_encontrada]
+    qtd = vagas(ala_encontrada)
     if qtd > 0:
         return f"Existem {qtd} vaga(s) disponível(is) na ala {ala_encontrada}."
     return f"ALERTA SISTEMA: Não há vagas na ala {ala_encontrada} no momento. Acionar protocolo de superlotação."
