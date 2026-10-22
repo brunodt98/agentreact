@@ -26,6 +26,9 @@ class TriageState(TypedDict):
     escore_news2: NotRequired[Optional[int]]
     classificacao_news2: NotRequired[Optional[str]]
 
+    # Pontos de cada parâmetro do NEWS2 (ex: {"frequencia_cardiaca": 2}); usado para colorir o painel
+    pontos_news2: NotRequired[Optional[dict]]
+
     # Motivo de o NEWS2 não se aplicar (ex: paciente pediátrico); None quando se aplica
     escore_nao_aplicavel: NotRequired[Optional[str]]
 

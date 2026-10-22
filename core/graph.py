@@ -76,12 +76,14 @@ def registrar_resultados_node(state: TriageState):
             if resultado.get("status") == "calculado":
                 atualizacao["escore_news2"] = resultado["escore"]
                 atualizacao["classificacao_news2"] = resultado["classificacao"]
+                atualizacao["pontos_news2"] = resultado["pontos_por_parametro"]
                 atualizacao["escore_nao_aplicavel"] = None
                 logger.info("NEWS2=%s (%s)", resultado["escore"], resultado["classificacao"])
             elif resultado.get("status") == "nao_aplicavel":
                 # Um escore adulto anterior (ex: idade corrigida) deixa de valer
                 atualizacao["escore_news2"] = None
                 atualizacao["classificacao_news2"] = None
+                atualizacao["pontos_news2"] = None
                 atualizacao["escore_nao_aplicavel"] = resultado["motivo"]
                 logger.info("NEWS2 não aplicável: %s", resultado["motivo"])
 

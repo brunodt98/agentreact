@@ -10,7 +10,7 @@ Um assistente inteligente (AI Agent) baseado na arquitetura **ReAct** (Reasoning
 
 Este projeto foi construído utilizando um ecossistema moderno de IA Generativa e orquestração de fluxos:
 
-*   **[Streamlit](https://streamlit.io/):** Interface de usuário (UI) simples e interativa, simulando o chat de triagem.
+*   **[Streamlit](https://streamlit.io/):** Interface clínica em duas colunas: chat de triagem à esquerda e painel do paciente à direita (faixa de classificação, escore NEWS2 e cartões de sinais vitais coloridos pela pontuação). Tema em `.streamlit/config.toml` e componentes em `ui/componentes.py`.
 *   **[LangGraph](https://python.langchain.com/v0.1/docs/langgraph/):** Gerenciamento de estado (StateGraph) e fluxo do agente, permitindo memória contínua e a funcionalidade de *Human-in-the-loop*.
 *   **[LangChain](https://www.langchain.com/):** Framework base para integração das ferramentas e chamadas ao LLM.
 *   **Google Gemini (2.5 Flash, configurável via `TRIAGEM_MODELO`):** Modelo fundacional (LLM) configurado com `temperature=0.0` para respostas determinísticas.

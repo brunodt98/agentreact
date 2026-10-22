@@ -52,6 +52,7 @@ def test_news2_preenche_estado_estruturado():
     assert estado["idade"] == 60
     assert estado["sinais_vitais"]["frequencia_cardiaca"] == 120
     assert "idade" not in estado["sinais_vitais"]
+    assert estado["pontos_news2"]["frequencia_cardiaca"] == 2
 
 
 def test_red_flag_forca_vermelho_mesmo_com_news2_baixo():
