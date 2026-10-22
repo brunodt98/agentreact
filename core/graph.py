@@ -50,7 +50,7 @@ def red_flags_node(state: TriageState):
     logger.warning("Sinais de alarme detectados: %s", novas)
     return {
         "red_flags": acumuladas,
-        "classificacao": pior_classificacao("VERMELHO", state.get("classificacao_mews")),
+        "classificacao": pior_classificacao("VERMELHO", state.get("classificacao_news2")),
     }
 
 
@@ -68,18 +68,29 @@ def registrar_resultados_node(state: TriageState):
 
         if msg.name == "calcular_escore_gravidade" and isinstance(msg.artifact, dict):
             resultado = msg.artifact
-            atualizacao["sinais_vitais"] = {**(state.get("sinais_vitais") or {}), **resultado.get("sinais_vitais", {})}
-            if resultado.get("completo"):
-                atualizacao["escore_mews"] = resultado["escore"]
-                atualizacao["classificacao_mews"] = resultado["classificacao"]
-                logger.info("MEWS=%s (%s)", resultado["escore"], resultado["classificacao"])
+            sinais = dict(resultado.get("sinais_vitais", {}))
+            if sinais.get("idade") is not None:
+                atualizacao["idade"] = sinais.pop("idade")
+            atualizacao["sinais_vitais"] = {**(state.get("sinais_vitais") or {}), **sinais}
+
+            if resultado.get("status") == "calculado":
+                atualizacao["escore_news2"] = resultado["escore"]
+                atualizacao["classificacao_news2"] = resultado["classificacao"]
+                atualizacao["escore_nao_aplicavel"] = None
+                logger.info("NEWS2=%s (%s)", resultado["escore"], resultado["classificacao"])
+            elif resultado.get("status") == "nao_aplicavel":
+                # Um escore adulto anterior (ex: idade corrigida) deixa de valer
+                atualizacao["escore_news2"] = None
+                atualizacao["classificacao_news2"] = None
+                atualizacao["escore_nao_aplicavel"] = resultado["motivo"]
+                logger.info("NEWS2 não aplicável: %s", resultado["motivo"])
 
         elif msg.name == "acionar_equipe_emergencia":
             atualizacao["emergencia_acionada"] = True
 
-    if "classificacao_mews" in atualizacao:
+    if "classificacao_news2" in atualizacao:
         alarme = "VERMELHO" if state.get("red_flags") else None
-        atualizacao["classificacao"] = pior_classificacao(alarme, atualizacao["classificacao_mews"])
+        atualizacao["classificacao"] = pior_classificacao(alarme, atualizacao["classificacao_news2"])
     return atualizacao
 
 

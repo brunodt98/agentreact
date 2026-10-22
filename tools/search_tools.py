@@ -22,6 +22,12 @@ PROTOCOLOS = [
         ("avc", "derrame", "boca torta", "perda de forca", "fala enrolada", "hemiparesia"),
         "Protocolo AVC: Acionar código AVC. Tomografia sem contraste imediata. Risco Vermelho.",
     ),
+    (
+        ("pediatr", "crianca", "infantil", "bebe", "lactente", "recem-nascido", "recem nascido"),
+        "Protocolo Pediátrico: escores adultos (NEWS2) não se aplicam a menores de 16 anos. "
+        "Os valores normais de FC e FR variam com a idade. Avaliar sinais de alarme, comunicar o "
+        "pediatra de plantão e classificar pela avaliação clínica do enfermeiro.",
+    ),
 ]
 
 @tool("buscar_protocolo_interno", args_schema=BuscaProtocoloInput)
@@ -35,4 +41,4 @@ def buscar_protocolo_interno(sintoma_ou_condicao: str) -> str:
     encontrados = [texto for chaves, texto in PROTOCOLOS if any(chave in condicao for chave in chaves)]
     if encontrados:
         return "\n".join(encontrados)
-    return f"Nenhum protocolo restrito encontrado para '{sintoma_ou_condicao}'. Seguir fluxo padrão de triagem (MEWS)."
+    return f"Nenhum protocolo restrito encontrado para '{sintoma_ou_condicao}'. Seguir fluxo padrão de triagem (NEWS2)."

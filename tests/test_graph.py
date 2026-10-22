@@ -34,25 +34,28 @@ def novo_grafo(respostas):
     return grafo, llm, config
 
 
-SINAIS = dict(frequencia_cardiaca=120, pressao_sistolica=85, frequencia_respiratoria=25,
-              temperatura=37.0, nivel_consciencia="Alerta")
+# NEWS2 = 7: FC 120 (2) + PAS 95 (2) + FR 22 (2) + SpO2 95 (1)
+SINAIS = dict(idade=60, frequencia_cardiaca=120, pressao_sistolica=95, frequencia_respiratoria=22,
+              saturacao_o2=95, oxigenio_suplementar=False, temperatura=37.0, nivel_consciencia="Alerta")
 
 
-def test_mews_preenche_estado_estruturado():
+def test_news2_preenche_estado_estruturado():
     grafo, _, config = novo_grafo([
         chamada("calcular_escore_gravidade", SINAIS),
         AIMessage(content="Classificação VERMELHO."),
     ])
-    estado = grafo.invoke({"messages": [HumanMessage(content="FC 120, PAS 85, FR 25, 37C, alerta")]}, config)
+    estado = grafo.invoke({"messages": [HumanMessage(content="60 anos, FC 120, PAS 95, FR 22, SpO2 95% AA, 37C, alerta")]}, config)
 
-    assert estado["escore_mews"] == 5
-    assert estado["classificacao_mews"] == "VERMELHO"
+    assert estado["escore_news2"] == 7
+    assert estado["classificacao_news2"] == "VERMELHO"
     assert estado["classificacao"] == "VERMELHO"
+    assert estado["idade"] == 60
     assert estado["sinais_vitais"]["frequencia_cardiaca"] == 120
+    assert "idade" not in estado["sinais_vitais"]
 
 
-def test_red_flag_forca_vermelho_mesmo_com_mews_baixo():
-    normais = dict(SINAIS, frequencia_cardiaca=80, pressao_sistolica=120, frequencia_respiratoria=12)
+def test_red_flag_forca_vermelho_mesmo_com_news2_baixo():
+    normais = dict(SINAIS, frequencia_cardiaca=80, pressao_sistolica=120, frequencia_respiratoria=16, saturacao_o2=98)
     grafo, llm, config = novo_grafo([
         chamada("calcular_escore_gravidade", normais),
         AIMessage(content="ok"),
@@ -60,7 +63,7 @@ def test_red_flag_forca_vermelho_mesmo_com_mews_baixo():
     estado = grafo.invoke({"messages": [HumanMessage(content="Dor no peito irradiando, sinais normais")]}, config)
 
     assert estado["red_flags"] == ["Dor torácica"]
-    assert estado["classificacao_mews"] == "VERDE"
+    assert estado["classificacao_news2"] == "VERDE"
     assert estado["classificacao"] == "VERMELHO"  # nunca rebaixa
     # O LLM recebeu o alerta no system prompt
     assert "SINAIS DE ALARME DETECTADOS" in llm.chamadas[0][0].content
@@ -104,6 +107,36 @@ def test_valor_invalido_volta_como_erro_para_o_llm():
     ])
     estado = grafo.invoke({"messages": [HumanMessage(content="FC 900")]}, config)
 
-    assert estado.get("escore_mews") is None
+    assert estado.get("escore_news2") is None
     erro = [m for m in estado["messages"] if isinstance(m, ToolMessage)][-1]
     assert erro.status == "error"
+
+
+def test_paciente_pediatrico_nao_recebe_escore_adulto():
+    grafo, llm, config = novo_grafo([
+        chamada("calcular_escore_gravidade", dict(SINAIS, idade=7)),
+        AIMessage(content="NEWS2 não se aplica; seguir protocolo pediátrico."),
+    ])
+    estado = grafo.invoke({"messages": [HumanMessage(content="Criança de 7 anos, FC 120")]}, config)
+
+    assert estado["idade"] == 7
+    assert estado.get("escore_news2") is None
+    assert estado.get("classificacao") is None
+    assert "Paciente pediátrico" in estado["escore_nao_aplicavel"]
+    # O LLM foi avisado no system prompt da segunda chamada
+    assert "NEWS2 NÃO SE APLICA" in llm.chamadas[1][0].content
+
+
+def test_idade_corrigida_para_crianca_descarta_escore_adulto():
+    grafo, _, config = novo_grafo([
+        chamada("calcular_escore_gravidade", SINAIS, id_="c1"),
+        AIMessage(content="Classificação VERMELHO."),
+        chamada("calcular_escore_gravidade", dict(SINAIS, idade=10), id_="c2"),
+        AIMessage(content="Corrigido: paciente pediátrico."),
+    ])
+    grafo.invoke({"messages": [HumanMessage(content="60 anos, FC 120...")]}, config)
+    estado = grafo.invoke({"messages": [HumanMessage(content="Correção: são 10 anos")]}, config)
+
+    assert estado["escore_news2"] is None and estado["classificacao_news2"] is None
+    assert estado["classificacao"] is None
+    assert estado["escore_nao_aplicavel"]

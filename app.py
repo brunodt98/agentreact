@@ -31,6 +31,8 @@ ROTULOS_SINAIS = {
     "frequencia_cardiaca": ("FC", "bpm"),
     "pressao_sistolica": ("PAS", "mmHg"),
     "frequencia_respiratoria": ("FR", "irpm"),
+    "saturacao_o2": ("SpO2", "%"),
+    "oxigenio_suplementar": ("O2 suplementar", ""),
     "temperatura": ("Temp", "°C"),
     "nivel_consciencia": ("Consciência", ""),
 }
@@ -74,8 +76,13 @@ with st.sidebar:
     else:
         st.info("Classificação ainda não definida.")
 
-    if estado.get("escore_mews") is not None:
-        st.metric("Escore MEWS", estado["escore_mews"], help=f"Classificação pelo MEWS: {estado.get('classificacao_mews')}")
+    if estado.get("idade") is not None:
+        st.write(f"**Idade:** {estado['idade']} anos")
+
+    if estado.get("escore_nao_aplicavel"):
+        st.warning(f"**NEWS2 não aplicável.** {estado['escore_nao_aplicavel']}")
+    elif estado.get("escore_news2") is not None:
+        st.metric("Escore NEWS2", estado["escore_news2"], help=f"Classificação pelo NEWS2: {estado.get('classificacao_news2')}")
 
     if estado.get("red_flags"):
         st.error("**Sinais de alarme:**\n" + "\n".join(f"- {f}" for f in estado["red_flags"]))
@@ -88,6 +95,8 @@ with st.sidebar:
         st.subheader("Sinais vitais")
         for campo, valor in sinais.items():
             rotulo, unidade = ROTULOS_SINAIS.get(campo, (campo, ""))
+            if isinstance(valor, bool):
+                valor = "Sim" if valor else "Não (ar ambiente)"
             st.write(f"**{rotulo}:** {valor} {unidade}")
 
     st.divider()
@@ -144,7 +153,7 @@ if pendentes:
 
 # --- 6. INTERAÇÃO DO USUÁRIO ---
 user_input = st.chat_input(
-    "Ex: Paciente 45 anos, dor no peito, PA 140/90, FC 110...",
+    "Ex: Paciente 45 anos, dor no peito, PA 140/90, FC 110, SpO2 95% em ar ambiente...",
     disabled=bool(pendentes),
 )
 

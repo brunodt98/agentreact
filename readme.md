@@ -28,30 +28,38 @@ START → red_flags → agent ──(resposta)───────────�
 ```
 
 *   **`red_flags`:** detecta por regra em Python (não pelo LLM) os Sintomas de Risco Imediato — dor torácica, dificuldade respiratória grave, perda de consciência, sangramento massivo e suspeita de AVC — e força a classificação **VERMELHO**. Sintomas negados ("nega dor no peito") são ignorados.
-*   **`agent`:** o LLM recebe o system prompt + um bloco com o estado estruturado já apurado (sinais de alarme, sinais vitais, MEWS).
+*   **`agent`:** o LLM recebe o system prompt + um bloco com o estado estruturado já apurado (sinais de alarme, idade, sinais vitais, NEWS2).
 *   **`tools`:** executa as ferramentas; erros de validação voltam ao LLM para que ele pergunte ao enfermeiro.
-*   **`registrar_resultados`:** copia os resultados numéricos das ferramentas para o estado (`sinais_vitais`, `escore_mews`, `classificacao`). A classificação final é sempre **a mais grave** entre MEWS e sinais de alarme.
+*   **`registrar_resultados`:** copia os resultados numéricos das ferramentas para o estado (`idade`, `sinais_vitais`, `escore_news2`, `classificacao`). A classificação final é sempre **a mais grave** entre NEWS2 e sinais de alarme.
 *   **`aprovacao_humana`:** *human-in-the-loop* com `interrupt` do LangGraph. Ações que afetam o mundo real só rodam após o enfermeiro aprovar na interface.
 
 ## 🛠️ Ferramentas do Agente (Tools)
 
-1.  `calcular_escore_gravidade`: calcula o **MEWS** (Modified Early Warning Score) com validação Pydantic (faixas fisiológicas e AVPU). Se faltar algum sinal vital, **não calcula** e devolve a lista do que falta — o modelo não precisa (nem pode) inventar valores.
+1.  `calcular_escore_gravidade`: calcula o **NEWS2** (National Early Warning Score 2) com validação Pydantic (faixas fisiológicas e ACVPU). Se faltar algum dado, **não calcula** e devolve a lista do que falta — o modelo não precisa (nem pode) inventar valores. Para **menores de 16 anos**, informa que o escore adulto não se aplica.
 2.  `consultar_leitos`: simula a consulta de vagas por ala (UTI, Enfermarias, Emergência).
 3.  `buscar_medico_plantao`: consulta a escala e retorna o especialista de plantão e seu ramal.
-4.  `buscar_protocolo_interno`: base simulada de protocolos (Dor Torácica, Sepse, AVC).
+4.  `buscar_protocolo_interno`: base simulada de protocolos (Dor Torácica, Sepse, AVC, Pediátrico).
 5.  `acionar_equipe_emergencia`: aciona o código vermelho. **Exige aprovação do enfermeiro.**
 
-### Regras do MEWS
+### Regras do NEWS2
+
+Dados exigidos: idade, FR, SpO₂, oxigênio suplementar (sim/não), PA sistólica, FC, consciência e temperatura.
 
 | Parâmetro | 3 | 2 | 1 | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|---|---|---|
-| PA sistólica (mmHg) | ≤70 | 71–80 | 81–100 | 101–199 | | ≥200 | |
-| FC (bpm) | | <40 | 41–50 | 51–100 | 101–110 | 111–129 | ≥130 |
-| FR (irpm) | | <9 | | 9–14 | 15–20 | 21–29 | ≥30 |
-| Temperatura (°C) | | <35 | | 35–38,4 | | ≥38,5 | |
-| Consciência (AVPU) | | | | Alerta | Voz | Dor | Inconsciente |
+| FR (irpm) | ≤8 | | 9–11 | 12–20 | | 21–24 | ≥25 |
+| SpO₂ (%) — escala 1 | ≤91 | 92–93 | 94–95 | ≥96 | | | |
+| Oxigênio suplementar | | Sim | | Ar ambiente | | | |
+| PA sistólica (mmHg) | ≤90 | 91–100 | 101–110 | 111–219 | | | ≥220 |
+| FC (bpm) | ≤40 | | 41–50 | 51–90 | 91–110 | 111–130 | ≥131 |
+| Consciência (ACVPU) | | | | Alerta | | | Confuso, Voz, Dor ou Inconsciente |
+| Temperatura (°C) | ≤35,0 | | 35,1–36,0 | 36,1–38,0 | 38,1–39,0 | ≥39,1 | |
 
-**Classificação:** VERMELHO se escore ≥ 5 ou inconsciente · AMARELO se escore 3–4 ou algum parâmetro isolado com 3 pontos · VERDE nos demais casos.
+**Classificação:** VERMELHO se escore ≥ 7 ou inconsciente · AMARELO se escore 5–6 ou algum parâmetro isolado com 3 pontos · VERDE nos demais casos.
+
+**Idade:** o NEWS2 não é validado para menores de 16 anos. Nesses casos o agente não classifica por escore: indica o protocolo pediátrico e o pediatra de plantão (os sinais de alarme continuam valendo).
+
+**Limitações conhecidas:** a escala 2 de SpO₂ (DPOC com retenção de CO₂) e a gestação não são tratadas.
 
 ## 🚀 Como instalar e rodar localmente
 

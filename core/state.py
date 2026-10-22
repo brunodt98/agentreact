@@ -16,14 +16,20 @@ class TriageState(TypedDict):
     # Sintomas de Risco Imediato detectados por regra (ex: "Dor torácica")
     red_flags: NotRequired[list[str]]
 
-    # Últimos sinais vitais validados pela calculadora (frequencia_cardiaca, temperatura, ...)
+    # Idade informada à calculadora (decide se o NEWS2 se aplica)
+    idade: NotRequired[Optional[int]]
+
+    # Últimos sinais vitais validados pela calculadora (frequencia_cardiaca, saturacao_o2, ...)
     sinais_vitais: NotRequired[dict]
 
-    # Resultado do MEWS e sua classificação isolada
-    escore_mews: NotRequired[Optional[int]]
-    classificacao_mews: NotRequired[Optional[str]]
+    # Resultado do NEWS2 e sua classificação isolada
+    escore_news2: NotRequired[Optional[int]]
+    classificacao_news2: NotRequired[Optional[str]]
 
-    # Classificação final = a mais grave entre MEWS e sinais de alarme ("VERDE", "AMARELO", "VERMELHO")
+    # Motivo de o NEWS2 não se aplicar (ex: paciente pediátrico); None quando se aplica
+    escore_nao_aplicavel: NotRequired[Optional[str]]
+
+    # Classificação final = a mais grave entre NEWS2 e sinais de alarme ("VERDE", "AMARELO", "VERMELHO")
     classificacao: NotRequired[Optional[str]]
 
     # True depois que o enfermeiro aprovou o acionamento da equipe de emergência

@@ -20,7 +20,7 @@ class BuscaMedicoInput(BaseModel):
 
 class AcionarEmergenciaInput(BaseModel):
     motivo: str = Field(
-        description="Resumo objetivo do motivo do acionamento, citando sinais de alarme e/ou escore. Ex: 'Dor no peito irradiando, MEWS 6'."
+        description="Resumo objetivo do motivo do acionamento, citando sinais de alarme e/ou escore. Ex: 'Dor no peito irradiando, NEWS2 7'."
     )
     especialidade: str = Field(
         default="Clínica Geral",
