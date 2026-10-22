@@ -5,6 +5,7 @@ Todo texto que pode vir do LLM ou do usuário passa por html.escape.
 """
 from base64 import b64encode
 from html import escape
+from pathlib import Path
 
 # --- 1. PALETA E METADADOS ---
 
@@ -52,6 +53,8 @@ ROTULOS_ARGUMENTOS = {
 }
 
 # --- 2. CSS GLOBAL ---
+# Atenção: não use o caractere "<" dentro do CSS (nem em comentários). O st.html filtra o conteúdo
+# com DOMPurify, que descarta o bloco <style> inteiro nesse caso.
 
 CSS = """
 <style>
@@ -59,13 +62,14 @@ CSS = """
   --tr-ink: #0F172A; --tr-muted: #64748B; --tr-line: #E2E8F0; --tr-card: #FFFFFF;
   --tr-brand: #0E7490; --tr-brand-soft: #ECFEFF;
 }
-.block-container { padding-top: 1.25rem; max-width: 1360px; }
+.block-container { padding-top: 3.6rem; max-width: 1360px; }
+[data-testid="stHeader"] { background: transparent; }
 
 /* Chat e painel rolam por dentro e ocupam a altura da tela: o cabeçalho e a faixa de risco ficam sempre visíveis */
 /* O Streamlit fixa a altura no pai do container e usa flex-basis 0, por isso o :has e o flex: none */
 @media (min-width: 900px) {
-  div:has(> .st-key-historico), div:has(> .st-key-painel),
-  .st-key-historico, .st-key-painel { height: max(300px, calc(100vh - 400px)) !important; flex: none !important; }
+  div:has(> .st-key-historico), .st-key-historico { height: max(260px, calc(100vh - 452px)) !important; flex: none !important; }
+  div:has(> .st-key-painel), .st-key-painel { height: max(400px, calc(100vh - 290px)) !important; flex: none !important; }
 }
 @media (max-width: 899px) {
   div:has(> .st-key-historico), div:has(> .st-key-painel),
@@ -73,8 +77,7 @@ CSS = """
 }
 [data-testid="stSidebarContent"] { padding-top: .5rem; }
 
-.tr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-  background: var(--tr-card); border: 1px solid var(--tr-line); border-radius: 14px; padding: 14px 20px; }
+.tr-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .tr-brand { display: flex; align-items: center; gap: 14px; }
 .tr-logo { width: 42px; height: 42px; border-radius: 11px; background: var(--tr-brand);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -86,10 +89,10 @@ CSS = """
 
 .tr-banner { display: flex; border-radius: 14px; overflow: hidden; border: 1px solid var(--tr-line); margin-top: 2px; }
 .tr-banner-bar { width: 8px; flex-shrink: 0; }
-.tr-banner-body { flex: 1; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center;
+.tr-banner-body { flex: 1; padding: 12px 22px; display: flex; justify-content: space-between; align-items: center;
   gap: 16px; flex-wrap: wrap; }
 .tr-eyebrow { font-size: .72rem; font-weight: 600; color: var(--tr-muted); text-transform: uppercase; letter-spacing: .08em; }
-.tr-level { font-size: 1.65rem; font-weight: 700; letter-spacing: .01em; line-height: 1.2; }
+.tr-level { font-size: 1.5rem; font-weight: 700; letter-spacing: .01em; line-height: 1.2; }
 .tr-level-desc { color: #334155; font-weight: 500; font-size: .92rem; }
 .tr-score { text-align: right; min-width: 90px; }
 .tr-score-num { font-size: 2.4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -108,13 +111,60 @@ CSS = """
 .tr-vital.pendente .tr-vital-val { color: #94A3B8; font-weight: 500; font-size: 1rem; }
 .tr-badge { display: inline-block; font-size: .68rem; font-weight: 600; border-radius: 6px; padding: 1px 7px; margin-top: 5px; }
 
-.tr-welcome { background: var(--tr-card); border: 1px solid var(--tr-line); border-radius: 14px; padding: 22px 24px; }
-.tr-welcome h3 { margin: 0 0 4px; font-size: 1.1rem; color: var(--tr-ink); }
-.tr-welcome p { margin: 0 0 14px; color: var(--tr-muted); font-size: .9rem; }
-.tr-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.tr-step { background: #F8FAFC; border-radius: 10px; padding: 12px 14px; font-size: .85rem; color: #334155; }
-.tr-step b { display: block; color: var(--tr-brand); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
-@media (max-width: 640px) { .tr-steps { grid-template-columns: 1fr; } .tr-score { text-align: left; } }
+/* --- Chat estilo aplicativo de mensagens --- */
+.st-key-chatcard { background: var(--tr-card); border: 1px solid var(--tr-line); border-radius: 16px;
+  gap: 0 !important; overflow: hidden; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
+.tr-chat-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--tr-line); }
+.tr-chat-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 3px #CFFAFE; }
+.tr-chat-name { font-weight: 700; color: var(--tr-ink); font-size: 1rem; line-height: 1.2; }
+.tr-chat-status { font-size: .78rem; color: var(--tr-muted); display: flex; align-items: center; gap: 6px; }
+.tr-online { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 3px #DCFCE7; }
+.tr-chat-tag { margin-left: auto; font-size: .72rem; font-weight: 600; color: var(--tr-brand); background: var(--tr-brand-soft);
+  border: 1px solid #A5F3FC; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+
+.st-key-historico { background-color: #F8FAFC; padding: 14px 16px !important; gap: 12px !important;
+  background-image: radial-gradient(#E2E8F0 1px, transparent 1px); background-size: 18px 18px; }
+.st-key-entrada { padding: 10px 14px 12px; border-top: 1px solid var(--tr-line); }
+
+/* Balões: assistente à esquerda (branco), enfermeiro à direita (azul-petróleo).
+   O Streamlit põe margem lateral no balão; não mexa na margem dos parágrafos: o markdown a compensa com margem negativa. */
+[data-testid="stChatMessage"] { background: transparent !important; padding: 0 !important; gap: 10px; align-items: flex-start; }
+[data-testid="stChatMessageAvatarImage"] { width: 36px; height: 36px; border-radius: 50%; }
+[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] { flex: 0 1 auto; width: fit-content; max-width: 82%;
+  margin: 0 !important; padding: 10px 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, .06); }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"]) [data-testid="stChatMessageContent"] {
+  background: #FFFFFF; border: 1px solid var(--tr-line); border-radius: 4px 16px 16px 16px; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) { flex-direction: row-reverse; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stChatMessageContent"] {
+  background: var(--tr-brand); border-radius: 16px 4px 16px 16px; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stChatMessageContent"] p { color: #FFFFFF; }
+
+/* Consultas que o assistente fez: pílulas discretas abaixo do balão */
+.tr-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 46px; }
+.tr-tool { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 600; color: #0F766E;
+  background: #F0FDFA; border: 1px solid #99F6E4; border-radius: 999px; padding: 3px 10px; }
+.tr-tool.erro { color: #B45309; background: #FFFBEB; border-color: #FDE68A; }
+[class*="st-key-detalhes_"] { margin-left: 46px; width: auto !important; }
+[class*="st-key-detalhes_"] details { border-radius: 10px; background: #FFFFFF; }
+[class*="st-key-detalhes_"] summary { padding-top: 4px; padding-bottom: 4px; font-size: .8rem; }
+
+/* Indicador "digitando" */
+.tr-typing { display: flex; align-items: center; gap: 8px; color: var(--tr-muted); font-size: .85rem; }
+.tr-typing span { width: 7px; height: 7px; border-radius: 50%; background: #22D3EE; animation: tr-pulo 1.2s infinite ease-in-out; }
+.tr-typing span:nth-child(2) { animation-delay: .15s; }
+.tr-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes tr-pulo { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+/* Saudação e casos de exemplo */
+.tr-hello { color: #334155; }
+.tr-hello b { color: var(--tr-ink); }
+.tr-hello ol { margin: 6px 0 0; padding-left: 18px; font-size: .9rem; }
+.tr-hello li { margin: 2px 0; }
+.st-key-exemplos { margin-left: 46px; width: auto !important; }
+.st-key-exemplos button { border-radius: 999px !important; border: 1px solid #A5F3FC !important; background: var(--tr-brand-soft) !important;
+  color: var(--tr-brand) !important; min-height: 34px; }
+.st-key-exemplos button:hover { background: #CFFAFE !important; }
+@media (max-width: 640px) { .tr-score { text-align: left; } .tr-tools, .st-key-exemplos, [class*="st-key-detalhes_"] { margin-left: 0; } }
 
 .tr-legend { display: flex; flex-direction: column; gap: 8px; font-size: .85rem; color: #334155; }
 .tr-legend-row { display: flex; align-items: center; gap: 10px; }
@@ -137,6 +187,13 @@ _LOGO_SVG = (
     '<path d="M3 12h4l2-5 4 10 2-5h6"/></svg>'
 )
 _LOGO = f'<img alt="" width="24" height="24" src="data:image/svg+xml;base64,{b64encode(_LOGO_SVG.encode()).decode()}">'
+
+NOME_ASSISTENTE = "Clara"
+
+_ASSETS = Path(__file__).resolve().parent.parent / "assets"
+AVATAR_ASSISTENTE = str(_ASSETS / "assistente.png")
+AVATAR_ENFERMEIRO = str(_ASSETS / "enfermeiro.png")
+_AVATAR_URI = "data:image/png;base64," + b64encode((_ASSETS / "assistente.png").read_bytes()).decode()
 
 # --- 3. COMPONENTES ---
 
@@ -246,17 +303,36 @@ def cartoes_sinais_vitais(estado: dict) -> str:
     )
 
 
-def boas_vindas() -> str:
+def cabecalho_chat() -> str:
     return (
-        '<div class="tr-welcome"><h3>Nova triagem</h3>'
-        '<p>Descreva o paciente em linguagem natural. O assistente organiza os dados, calcula o NEWS2 '
-        'e sinaliza riscos — a decisão final é sempre sua.</p>'
-        '<div class="tr-steps">'
-        '<div class="tr-step"><b>1 · Descreva</b>Idade, queixa principal e sinais vitais disponíveis.</div>'
-        '<div class="tr-step"><b>2 · Complete</b>O assistente pergunta o que faltar — ele nunca estima valores.</div>'
-        '<div class="tr-step"><b>3 · Confirme</b>Ações como acionar a emergência só ocorrem com sua aprovação.</div>'
-        '</div></div>'
+        f'<div class="tr-chat-head"><img class="tr-chat-avatar" alt="" src="{_AVATAR_URI}">'
+        f'<div><div class="tr-chat-name">{NOME_ASSISTENTE}</div>'
+        '<div class="tr-chat-status"><span class="tr-online"></span>Assistente de triagem · online</div></div>'
+        '<span class="tr-chat-tag">Protocolo NEWS2</span></div>'
     )
+
+
+def saudacao() -> str:
+    return (
+        f'<div class="tr-hello">Olá! Eu sou a <b>{NOME_ASSISTENTE}</b>, assistente de triagem. '
+        'Me conte sobre o paciente e eu organizo os dados e calculo o risco.'
+        '<ol><li><b>Descreva</b> idade, queixa e os sinais vitais que tiver.</li>'
+        '<li>Eu <b>pergunto o que faltar</b> — nunca estimo valores.</li>'
+        '<li>Ações como acionar a emergência só acontecem <b>com sua aprovação</b>.</li></ol></div>'
+    )
+
+
+def digitando() -> str:
+    return f'<div class="tr-typing"><span></span><span></span><span></span>{NOME_ASSISTENTE} está analisando o caso...</div>'
+
+
+def pilulas_ferramentas(itens: list[tuple[str, bool]]) -> str:
+    """Pílulas 'Escore NEWS2' para as consultas de um passo do agente. itens = [(nome, teve_erro)]."""
+    pilulas = "".join(
+        f'<span class="tr-tool{" erro" if erro else ""}">{"⚠" if erro else "✓"} {escape(nome)}</span>'
+        for nome, erro in itens
+    )
+    return f'<div class="tr-tools">{pilulas}</div>'
 
 
 def legenda_classificacao() -> str:

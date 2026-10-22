@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#0E7490"/>
+    </linearGradient>
+    <clipPath id="circulo"><circle cx="128" cy="128" r="128"/></clipPath>
+  </defs>
+
+  <circle cx="128" cy="128" r="128" fill="url(#fundo)"/>
+
+  <g clip-path="url(#circulo)">
+    <!-- cabelo (atrás) -->
+    <path d="M66 122 C60 66 94 40 128 40 C162 40 196 66 190 122 L192 176 C184 190 170 188 168 172 L88 172 C86 188 72 190 64 176 Z" fill="#4A2C24"/>
+
+    <!-- jaleco branco e pijama cirúrgico -->
+    <path d="M28 256 C30 214 66 190 128 188 C190 190 226 214 228 256 Z" fill="#FFFFFF"/>
+    <path d="M100 190 L128 232 L156 190 C146 188 138 187 128 187 C118 187 110 188 100 190 Z" fill="#14B8A6"/>
+    <path d="M100 190 L128 232 L156 190" fill="none" stroke="#E2E8F0" stroke-width="3"/>
+
+    <!-- pescoço -->
+    <path d="M112 160 L144 160 L146 192 C138 200 118 200 110 192 Z" fill="#E9B48F"/>
+
+    <!-- estetoscópio -->
+    <path d="M94 196 C88 226 104 244 128 244" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+    <path d="M162 196 C168 226 152 244 128 244" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="128" cy="244" r="9" fill="#94A3B8" stroke="#334155" stroke-width="4"/>
+  </g>
+
+  <!-- orelhas -->
+  <circle cx="79" cy="126" r="10" fill="#F2C29F"/>
+  <circle cx="177" cy="126" r="10" fill="#F2C29F"/>
+
+  <!-- rosto -->
+  <ellipse cx="128" cy="122" rx="49" ry="53" fill="#F6CFAE"/>
+
+  <!-- franja -->
+  <path d="M79 116 C78 82 100 64 128 64 C156 64 178 82 177 116 C166 98 150 88 132 90 C122 98 104 106 79 116 Z" fill="#4A2C24"/>
+
+  <!-- touca de enfermagem com cruz -->
+  <path d="M90 74 L98 44 Q128 36 158 44 L166 74 Q128 64 90 74 Z" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="123" y="47" width="10" height="20" rx="2" fill="#0E7490"/>
+  <rect x="118" y="52" width="20" height="10" rx="2" fill="#0E7490"/>
+
+  <!-- sobrancelhas -->
+  <path d="M100 108 Q108 103 116 107" fill="none" stroke="#4A2C24" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M140 107 Q148 103 156 108" fill="none" stroke="#4A2C24" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- olhos -->
+  <ellipse cx="108" cy="124" rx="6.5" ry="8" fill="#1E293B"/>
+  <ellipse cx="148" cy="124" rx="6.5" ry="8" fill="#1E293B"/>
+  <circle cx="110.5" cy="121" r="2.4" fill="#FFFFFF"/>
+  <circle cx="150.5" cy="121" r="2.4" fill="#FFFFFF"/>
+
+  <!-- bochechas -->
+  <circle cx="96" cy="142" r="8" fill="#F59E9E" opacity="0.55"/>
+  <circle cx="160" cy="142" r="8" fill="#F59E9E" opacity="0.55"/>
+
+  <!-- sorriso -->
+  <path d="M114 146 Q128 160 142 146" fill="none" stroke="#9F4A3A" stroke-width="4" stroke-linecap="round"/>
+</svg>

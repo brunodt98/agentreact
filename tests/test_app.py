@@ -38,11 +38,11 @@ def abrir(thread_id=None) -> AppTest:
     return at.run()
 
 
-def test_tela_inicial_mostra_boas_vindas_e_exemplos():
+def test_tela_inicial_mostra_saudacao_e_exemplos():
     at = abrir()
     assert not at.exception
     html = html_renderizado(at)
-    assert "Aguardando dados" in html and "Nova triagem" in html
+    assert "Aguardando dados" in html and "Eu sou a <b>Clara</b>" in html
     rotulos = [b.label for b in at.button]
     assert "Adulto com dor no peito" in rotulos and "Novo paciente" in rotulos
 
@@ -59,7 +59,8 @@ def test_paciente_classificado_mostra_faixa_e_sinais(com_llm):
     assert "VERMELHO · Emergência" in html
     assert "Sinal de alarme: Dor torácica" in html
     assert "7/7 coletados" in html and "+2 pontos" in html
-    assert [e.label for e in at.expander] == ["Escore NEWS2"]
+    assert "✓ Escore NEWS2" in html
+    assert [e.label for e in at.expander] == ["Ver detalhes das consultas"]
 
 
 def test_aprovacao_pendente_mostra_cartao_e_bloqueia_chat(com_llm):
@@ -72,3 +73,10 @@ def test_aprovacao_pendente_mostra_cartao_e_bloqueia_chat(com_llm):
     assert "Autorização necessária" in html_renderizado(at)
     assert "Aprovar" in [b.label for b in at.button]
     assert at.chat_input[0].disabled
+
+
+def test_css_nao_tem_sinal_de_menor():
+    # O st.html usa DOMPurify, que descarta o <style> inteiro se o CSS contiver "<"
+    from ui.componentes import CSS
+    corpo = CSS.strip().removeprefix("<style>").removesuffix("</style>")
+    assert "<" not in corpo

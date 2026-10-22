@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <clipPath id="circulo"><circle cx="128" cy="128" r="128"/></clipPath>
+  </defs>
+  <circle cx="128" cy="128" r="128" fill="#E2E8F0"/>
+  <g clip-path="url(#circulo)">
+    <!-- ombros com uniforme -->
+    <path d="M36 256 C38 206 76 182 128 180 C180 182 218 206 220 256 Z" fill="#475569"/>
+    <path d="M106 182 L128 214 L150 182 C142 180 136 180 128 180 C120 180 114 180 106 182 Z" fill="#CBD5E1"/>
+    <!-- crachá -->
+    <rect x="154" y="208" width="34" height="24" rx="4" fill="#FFFFFF"/>
+    <rect x="160" y="214" width="22" height="4" rx="2" fill="#0E7490"/>
+    <rect x="160" y="222" width="14" height="4" rx="2" fill="#94A3B8"/>
+  </g>
+  <!-- cabeça -->
+  <circle cx="128" cy="112" r="50" fill="#64748B"/>
+</svg>

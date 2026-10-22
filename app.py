@@ -16,16 +16,14 @@ from utils.logger import logger
 from utils.text import conteudo_para_texto
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
-# Cores e fontes ficam em .streamlit/config.toml; o CSS abaixo cuida dos componentes próprios.
+# Cores e fontes ficam em .streamlit/config.toml; o CSS de ui.CSS cuida dos componentes próprios.
 st.set_page_config(
     page_title="Triagem Clínica",
-    page_icon=":material/monitor_heart:",
+    page_icon=ui.AVATAR_ASSISTENTE,
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 st.html(ui.CSS)
-
-AVATAR_ENFERMEIRO = ":material/person:"
-AVATAR_ASSISTENTE = ":material/monitor_heart:"
 
 EXEMPLOS = {
     "Adulto com dor no peito": "Paciente 58 anos, dor no peito há 30 minutos. FC 112, PA 100/70, FR 22, "
@@ -55,11 +53,13 @@ st.session_state.setdefault("inicio", datetime.now().strftime("%H:%M"))
 config = {"configurable": {"thread_id": st.session_state.thread_id}}
 
 
-def executar_grafo(entrada, local=None):
-    """Roda o grafo até o fim ou até a próxima pausa de aprovação, com tratamento de erro."""
+def executar_grafo(entrada):
+    """Roda o grafo até o fim ou até a próxima pausa de aprovação, mostrando o indicador de 'digitando'."""
+    with historico:
+        with st.chat_message("assistant", avatar=ui.AVATAR_ASSISTENTE):
+            st.html(ui.digitando())
     try:
-        with (local or st.container()), st.spinner("Analisando o caso..."):
-            app_graph.invoke(entrada, config=config)
+        app_graph.invoke(entrada, config=config)
     except Exception as erro:  # API fora do ar, chave inválida, cota estourada...
         logger.exception("Falha ao executar o grafo")
         st.session_state.erro = f"Não foi possível processar a solicitação: {erro}"
@@ -68,8 +68,8 @@ def executar_grafo(entrada, local=None):
 def enviar_mensagem(texto: str):
     # Mostra a mensagem na hora, enquanto o agente processa
     with historico:
-        st.chat_message("user", avatar=AVATAR_ENFERMEIRO).write(texto)
-    executar_grafo({"messages": [HumanMessage(content=texto)]}, local=historico)
+        st.chat_message("user", avatar=ui.AVATAR_ENFERMEIRO).markdown(texto)
+    executar_grafo({"messages": [HumanMessage(content=texto)]})
     st.rerun()
 
 
@@ -78,14 +78,10 @@ estado = snapshot.values or {}
 mensagens = estado.get("messages", [])
 pendentes = [i for tarefa in snapshot.tasks for i in tarefa.interrupts]
 
-# --- 3. BARRA LATERAL ---
+# --- 3. BARRA LATERAL (ajuda; começa recolhida) ---
 with st.sidebar:
-    st.button("Novo paciente", icon=":material/person_add:", type="primary",
-              width="stretch", on_click=novo_paciente)
-
     st.subheader("Classificação")
     st.html(ui.legenda_classificacao())
-
     st.subheader("Como funciona")
     st.markdown(
         "- **Sinais de alarme** (dor torácica, AVC, sangramento...) são detectados por regra e elevam o risco para vermelho.\n"
@@ -95,16 +91,15 @@ with st.sidebar:
     st.html(ui.aviso_legal())
 
 # --- 4. CABEÇALHO E CLASSIFICAÇÃO ---
-st.html(ui.cabecalho(st.session_state.thread_id[:6].upper(), st.session_state.inicio))
+col_titulo, col_botao = st.columns([5, 1], vertical_alignment="center")
+col_titulo.html(ui.cabecalho(st.session_state.thread_id[:6].upper(), st.session_state.inicio))
+col_botao.button("Novo paciente", icon=":material/person_add:", type="primary", width="stretch",
+                 on_click=novo_paciente)
 st.html(ui.faixa_classificacao(estado))
 
-col_chat, col_painel = st.columns([3, 2], gap="large")
+col_chat, col_painel = st.columns([3, 2], gap="medium")
 
-# --- 5. PAINEL DO PACIENTE ---
-# Alturas fixas são sobrescritas pelo CSS (ui.CSS) para acompanhar a altura da tela
-painel = col_painel.container(height=500, border=False, key="painel")
-
-# --- 6. CONVERSA ---
+# --- 5. CHAT ---
 # Argumentos de cada chamada de ferramenta, para mostrar junto do resultado (auditoria)
 argumentos = {
     tc["id"]: tc["args"]
@@ -113,78 +108,89 @@ argumentos = {
 }
 
 
-def mostrar_ferramentas(bloco: list[ToolMessage]):
-    """Agrupa as ferramentas de um mesmo passo do agente numa única bolha, com detalhes recolhidos."""
-    with st.chat_message("assistant", avatar=AVATAR_ASSISTENTE):
-        st.caption("Consultas realizadas")
-        for msg in bloco:
-            nome, icone = ui.FERRAMENTAS.get(msg.name, (msg.name, ":material/build:"))
-            if getattr(msg, "status", "success") == "error":
-                nome, icone = f"{nome} · dado inválido, pedindo correção", ":material/error:"
-            with st.expander(nome, icon=icone):
-                st.markdown("**Dados enviados**")
+def mostrar_ferramentas(bloco: list[ToolMessage], indice: int):
+    """Consultas de um passo do agente: pílulas resumidas e os detalhes recolhidos logo abaixo."""
+    itens = []
+    for msg in bloco:
+        nome, _ = ui.FERRAMENTAS.get(msg.name, (msg.name, ""))
+        itens.append((nome, getattr(msg, "status", "success") == "error"))
+    st.html(ui.pilulas_ferramentas(itens))
+
+    with st.container(key=f"detalhes_{indice}"):
+        with st.expander("Ver detalhes das consultas", icon=":material/fact_check:"):
+            for msg, (nome, erro) in zip(bloco, itens):
+                st.markdown(f"**{nome}**" + (" · dado inválido, o assistente pediu correção" if erro else ""))
                 st.markdown(ui.formatar_argumentos(argumentos.get(msg.tool_call_id, {})))
-                st.markdown("**Resultado**")
-                st.text(conteudo_para_texto(msg.content))
+                st.caption(conteudo_para_texto(msg.content))
 
 
 with col_chat:
-    historico = st.container(height=500, border=False, autoscroll=True, key="historico")
-    with historico:
-        if not mensagens:
-            st.html(ui.boas_vindas())
-            st.caption("Ou comece por um caso de exemplo:")
-            colunas = st.columns(2)
-            for i, (rotulo, texto) in enumerate(EXEMPLOS.items()):
-                if colunas[i % 2].button(rotulo, key=f"exemplo_{i}", width="stretch"):
-                    enviar_mensagem(texto)
+    with st.container(key="chatcard"):
+        st.html(ui.cabecalho_chat())
 
-        bloco_ferramentas: list[ToolMessage] = []
-        for msg in mensagens:
-            if isinstance(msg, ToolMessage):
-                bloco_ferramentas.append(msg)
-                continue
+        # Alturas fixas são sobrescritas pelo CSS (ui.CSS) para acompanhar a altura da tela
+        historico = st.container(height=420, border=False, autoscroll=True, key="historico")
+        with historico:
+            if not mensagens:
+                with st.chat_message("assistant", avatar=ui.AVATAR_ASSISTENTE):
+                    st.html(ui.saudacao())
+                with st.container(key="exemplos"):
+                    st.caption("Experimente um caso de exemplo:")
+                    colunas = st.columns(2)
+                    for i, (rotulo, texto) in enumerate(EXEMPLOS.items()):
+                        if colunas[i % 2].button(rotulo, key=f"exemplo_{i}", width="stretch"):
+                            enviar_mensagem(texto)
+
+            bloco_ferramentas: list[ToolMessage] = []
+            for indice, msg in enumerate(mensagens):
+                if isinstance(msg, ToolMessage):
+                    bloco_ferramentas.append(msg)
+                    continue
+                if bloco_ferramentas:
+                    mostrar_ferramentas(bloco_ferramentas, indice)
+                    bloco_ferramentas = []
+
+                if isinstance(msg, HumanMessage):
+                    st.chat_message("user", avatar=ui.AVATAR_ENFERMEIRO).markdown(conteudo_para_texto(msg.content))
+                elif isinstance(msg, AIMessage):
+                    texto = conteudo_para_texto(msg.content)
+                    if texto.strip():
+                        st.chat_message("assistant", avatar=ui.AVATAR_ASSISTENTE).markdown(texto)
             if bloco_ferramentas:
-                mostrar_ferramentas(bloco_ferramentas)
-                bloco_ferramentas = []
+                mostrar_ferramentas(bloco_ferramentas, len(mensagens))
 
-            if isinstance(msg, HumanMessage):
-                st.chat_message("user", avatar=AVATAR_ENFERMEIRO).write(conteudo_para_texto(msg.content))
-            elif isinstance(msg, AIMessage):
-                texto = conteudo_para_texto(msg.content)
-                if texto.strip():
-                    st.chat_message("assistant", avatar=AVATAR_ASSISTENTE).write(texto)
-        if bloco_ferramentas:
-            mostrar_ferramentas(bloco_ferramentas)
+            if "erro" in st.session_state:
+                st.error(st.session_state.pop("erro"), icon=":material/cloud_off:")
 
-    if "erro" in st.session_state:
-        st.error(st.session_state.pop("erro"), icon=":material/cloud_off:")
+        with st.container(key="entrada"):
+            user_input = st.chat_input(
+                "Aguardando sua aprovação ao lado..." if pendentes
+                else "Descreva o paciente: idade, queixa, FC, PA, FR, SpO2, temperatura, consciência...",
+                disabled=bool(pendentes),
+            )
 
-# --- 7. HUMAN-IN-THE-LOOP: aprovação de ações sensíveis (no topo do painel, sempre à vista) ---
-with painel:
-    if pendentes:
-        pedido = pendentes[0].value
-        with st.container(border=True, key="aprovacao"):
-            st.html('<div class="tr-approval-title">Autorização necessária</div>'
-                    '<div class="tr-sub">O assistente quer executar a ação abaixo. Ela só acontece se você aprovar.</div>'
-                    + ui.itens_aprovacao(pedido.get("acoes", [])))
-            observacao = st.text_input("Observação (opcional)", key="obs_aprovacao",
-                                       placeholder="Ex: médico já está com o paciente")
-            col1, col2 = st.columns(2)
-            aprovar = col1.button("Aprovar", icon=":material/check_circle:", type="primary", width="stretch")
-            rejeitar = col2.button("Rejeitar", icon=":material/cancel:", width="stretch")
+# --- 6. PAINEL DO PACIENTE ---
+with col_painel:
+    painel = st.container(height=500, border=False, key="painel")
+    with painel:
+        # Human-in-the-loop: ações sensíveis aguardam aprovação no topo do painel, sempre à vista
+        if pendentes:
+            pedido = pendentes[0].value
+            with st.container(border=True, key="aprovacao"):
+                st.html('<div class="tr-approval-title">Autorização necessária</div>'
+                        '<div class="tr-sub">O assistente quer executar a ação abaixo. Ela só acontece se você aprovar.</div>'
+                        + ui.itens_aprovacao(pedido.get("acoes", [])))
+                observacao = st.text_input("Observação (opcional)", key="obs_aprovacao",
+                                           placeholder="Ex: médico já está com o paciente")
+                col1, col2 = st.columns(2)
+                aprovar = col1.button("Aprovar", icon=":material/check_circle:", type="primary", width="stretch")
+                rejeitar = col2.button("Rejeitar", icon=":material/cancel:", width="stretch")
 
-        if aprovar or rejeitar:
-            executar_grafo(Command(resume={"aprovado": bool(aprovar), "observacao": observacao}), local=historico)
-            st.rerun()
+            if aprovar or rejeitar:
+                executar_grafo(Command(resume={"aprovado": bool(aprovar), "observacao": observacao}))
+                st.rerun()
 
-    st.html(ui.cartoes_sinais_vitais(estado))
-
-# --- 8. ENTRADA DO ENFERMEIRO ---
-user_input = st.chat_input(
-    "Descreva o paciente: idade, queixa, FC, PA, FR, SpO2 (ar ambiente ou O2), temperatura, consciência...",
-    disabled=bool(pendentes),
-)
+        st.html(ui.cartoes_sinais_vitais(estado))
 
 if user_input:
     enviar_mensagem(user_input)
