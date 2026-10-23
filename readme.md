@@ -10,7 +10,7 @@ Um assistente inteligente (AI Agent) baseado na arquitetura **ReAct** (Reasoning
 
 Este projeto foi construído utilizando um ecossistema moderno de IA Generativa e orquestração de fluxos:
 
-*   **[Streamlit](https://streamlit.io/):** Interface clínica em duas colunas: chat de triagem à esquerda e painel do paciente à direita (faixa de classificação, escore NEWS2 e cartões de sinais vitais coloridos pela pontuação). O chat tem visual de aplicativo de mensagens, com a assistente **Clara** (avatar em `assets/`, editável no SVG). Tema em `.streamlit/config.toml` e componentes em `ui/componentes.py`.
+*   **[Streamlit](https://streamlit.io/):** Interface clínica em duas colunas: chat de triagem à esquerda e painel do paciente à direita (cartão de risco com escore NEWS2 e lista de sinais vitais com a pontuação de cada um). A autorização de ações sensíveis aparece dentro da conversa, logo abaixo da pergunta da assistente, e a legenda fica no botão **Ajuda**. O chat tem visual de aplicativo de mensagens, com a assistente **Clara** (avatar em `assets/`, editável no SVG). Tema em `.streamlit/config.toml` e componentes em `ui/componentes.py`.
 *   **[LangGraph](https://python.langchain.com/v0.1/docs/langgraph/):** Gerenciamento de estado (StateGraph) e fluxo do agente, permitindo memória contínua e a funcionalidade de *Human-in-the-loop*.
 *   **[LangChain](https://www.langchain.com/):** Framework base para integração das ferramentas e chamadas ao LLM.
 *   **Google Gemini (2.5 Flash, configurável via `TRIAGEM_MODELO`):** Modelo fundacional (LLM) configurado com `temperature=0.0` para respostas determinísticas.
@@ -40,7 +40,7 @@ A aplicação abre na página **Plantão**, pensada para quem assume o turno:
 *   **Indicadores:** pacientes na fila (por cor), maior espera, leitos livres e médicos disponíveis.
 *   **Fila de pacientes:** montada a partir das triagens feitas no app, da mais grave para a menos grave, com tempo de espera e alerta quando passa da meta (vermelho: imediato · amarelo: 60 min · verde: 120 min, configurável em `core/fila.py`). Cada paciente pode ser **aberto** na triagem ou marcado como **atendido**.
 *   **Pendências:** autorizações aguardando o enfermeiro, vermelhos sem equipe acionada, esperas acima da meta, alas lotadas e especialistas indisponíveis.
-*   **Leitos e equipe:** ocupação por ala e status de cada médico de plantão (dados simulados em `core/hospital.py`, os mesmos usados pelas ferramentas do agente).
+*   **Mapa do hospital:** planta com a sala de espera, cada ala e o centro cirúrgico. Cada leito aparece livre ou colorido pela gravidade do internado (passe o mouse para ver paciente, motivo e médico), e cada médico aparece na ala onde está, com o status (disponível, em atendimento, em cirurgia). Dados simulados em `core/hospital.py`, os mesmos usados pelas ferramentas do agente.
 
 O painel se atualiza sozinho a cada 30 segundos. A fila vive na memória do servidor: reiniciar o Streamlit zera os pacientes.
 

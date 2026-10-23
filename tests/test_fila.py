@@ -82,3 +82,17 @@ def test_pendencias_do_hospital():
     textos = [texto for _, texto in pendencias([])]
     assert any(t.startswith("Emergência sem leitos livres") for t in textos)
     assert any(t.startswith("Neurologia: Dra. Ana Silva está em cirurgia") for t in textos)
+
+
+def test_leitos_detalhados_batem_com_o_resumo_das_ferramentas():
+    from core.hospital import ESCALA_PLANTAO, LEITOS, LEITOS_DETALHE, medico_no_leito
+    # Os totais que o agente consulta não mudaram com o detalhamento leito a leito
+    assert LEITOS["Emergência"] == {"total": 8, "ocupados": 8}
+    assert LEITOS["UTI"] == {"total": 10, "ocupados": 8}
+    for ala, leitos in LEITOS_DETALHE.items():
+        assert sum(1 for l in leitos if l["paciente"]) == LEITOS[ala]["ocupados"]
+    # Médico em atendimento está num leito ocupado
+    for m in ESCALA_PLANTAO.values():
+        if m.get("leito"):
+            leito = next(l for ls in LEITOS_DETALHE.values() for l in ls if l["codigo"] == m["leito"])
+            assert leito["paciente"] and medico_no_leito(m["leito"]) is m

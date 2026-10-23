@@ -22,11 +22,8 @@ def painel():
     pacientes = listar_pacientes(app_graph)
 
     # --- Cabeçalho ---
-    col_titulo, col_botao = st.columns([5, 1], vertical_alignment="center")
-    col_titulo.html(ui.cabecalho(
-        "Plantão", f"Visão geral do hospital · turno {TURNO}",
-        [f"Atualizado {datetime.now():%H:%M}", "Atualiza a cada 30 s"],
-    ))
+    col_titulo, col_botao = st.columns([6, 1.4], vertical_alignment="center")
+    col_titulo.html(ui.cabecalho("Plantão", f"Turno {TURNO} · atualizado às {datetime.now():%H:%M}"))
     if col_botao.button("Nova triagem", icon=":material/person_add:", type="primary", width="stretch"):
         novo_paciente()
         st.switch_page(PAGINA_TRIAGEM)
@@ -34,38 +31,33 @@ def painel():
     # --- Indicadores ---
     st.html(up.indicadores(pacientes, LEITOS, ESCALA_PLANTAO, agora))
 
-    col_fila, col_lado = st.columns([3, 2], gap="medium")
+    col_mapa, col_fila = st.columns([2.3, 1], gap="medium")
 
-    # --- Fila de pacientes (mais grave primeiro) ---
+    # --- Mapa do hospital: leitos, internados e onde está cada médico ---
+    with col_mapa:
+        st.html(up.mapa_hospital(pacientes, agora))
+
+    # --- Fila da triagem (mais grave primeiro) e pendências ---
     with col_fila:
-        st.html(up.secao("Fila de pacientes", len(pacientes)))
+        st.html(up.secao("Fila da triagem", f"{len(pacientes)} aguardando"))
         if not pacientes:
             st.html(up.fila_vazia())
         for p in pacientes:
             cor = p.classificacao or ("PEDIATRICO" if p.pediatrico else "TRIAGEM")
             with st.container(key=f"fila_{cor}_{p.thread_id}"):
-                info, acoes = st.columns([5, 1.2], vertical_alignment="center")
-                info.html(up.linha_fila(p, agora))
-                with acoes:
-                    if st.button("Abrir", key=f"abrir_{p.thread_id}", icon=":material/open_in_new:", width="stretch"):
-                        abrir_paciente(p.thread_id, p.chegada.astimezone().strftime("%H:%M"))
-                        st.switch_page(PAGINA_TRIAGEM)
-                    # O callback roda antes do redesenho, então a fila já aparece sem o paciente
-                    st.button("Atendido", key=f"atendido_{p.thread_id}", icon=":material/check:", width="stretch",
-                              on_click=marcar_atendido, args=(app_graph, p.thread_id),
-                              disabled=p.aguardando_aprovacao,
-                              help="Responda a autorização pendente antes de liberar o paciente."
-                              if p.aguardando_aprovacao else "Tira o paciente da fila.")
-
-    # --- Pendências, leitos e equipe ---
-    with col_lado:
-        itens = pendencias(pacientes, agora)
-        st.html(up.secao("Pendências", len(itens)))
-        st.html(up.lista_pendencias(itens))
-        st.html(up.secao("Leitos"))
-        st.html(up.ocupacao_leitos(LEITOS))
-        st.html(up.secao("Equipe de plantão"))
-        st.html(up.equipe(ESCALA_PLANTAO, TURNO))
+                st.html(up.linha_fila(p, agora))
+                abrir, atendido = st.columns(2)
+                if abrir.button("Abrir", key=f"abrir_{p.thread_id}", icon=":material/chat:", width="stretch"):
+                    abrir_paciente(p.thread_id, p.chegada.astimezone().strftime("%H:%M"))
+                    st.switch_page(PAGINA_TRIAGEM)
+                # O callback roda antes do redesenho, então a fila já aparece sem o paciente
+                atendido.button("Atendido", key=f"atendido_{p.thread_id}", icon=":material/check:",
+                                type="tertiary", width="stretch",
+                                on_click=marcar_atendido, args=(app_graph, p.thread_id),
+                                disabled=p.aguardando_aprovacao,
+                                help="Responda a autorização pendente antes de liberar o paciente."
+                                if p.aguardando_aprovacao else "Tira o paciente da fila.")
+        st.html(up.lista_pendencias(pendencias(pacientes, agora)))
 
 
 painel()

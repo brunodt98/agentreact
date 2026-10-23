@@ -62,11 +62,10 @@ def test_paciente_classificado_mostra_faixa_e_sinais(com_llm):
 
     assert not at.exception
     html = html_renderizado(at)
-    assert "VERMELHO · Emergência" in html
+    assert "Vermelho · Emergência" in html
     assert "Sinal de alarme: Dor torácica" in html
-    assert "7/7 coletados" in html and "+2 pontos" in html
-    assert "✓ Escore NEWS2" in html
-    assert [e.label for e in at.expander] == ["Ver detalhes das consultas"]
+    assert "7 de 7 coletados" in html and ">+2<" in html
+    assert [e.label for e in at.expander] == ["✓ Consultou: Escore NEWS2"]
 
 
 def test_aprovacao_pendente_mostra_cartao_e_bloqueia_chat(com_llm):
@@ -94,10 +93,26 @@ def test_plantao_abre_primeiro_com_indicadores_leitos_e_equipe():
     at = abrir(pagina=None)
     assert not at.exception
     html = html_renderizado(at)
-    assert "Visão geral do hospital" in html
+    assert "Turno " in html
     assert "Pacientes na fila" in html and "Leitos livres" in html and "Médicos disponíveis" in html
     assert "Lotada" in html  # a Emergência simulada está sem vagas
     assert "Dra. Ana Silva" in html and "Em cirurgia" in html
+
+
+def test_mapa_mostra_leitos_internados_e_medicos():
+    from datetime import datetime, timezone
+    from core.hospital import LEITOS, LEITOS_DETALHE
+    from ui.plantao import mapa_hospital
+
+    assert "Mapa do hospital" in html_renderizado(abrir(pagina=None))
+    html = mapa_hospital([], datetime.now(timezone.utc))
+    assert "Sala de espera" in html and "Ninguém aguardando" in html and "Centro cirúrgico" in html
+    # Um quadrinho por leito, e cada leito livre marcado como livre
+    leitos = html.count('<div class="tm-bed"') + html.count('<div class="tm-bed livre"')
+    assert leitos == sum(len(l) for l in LEITOS_DETALHE.values())
+    assert html.count('<div class="tm-bed livre"') == sum(l["total"] - l["ocupados"] for l in LEITOS.values())
+    # O médico em atendimento aparece no leito que está atendendo
+    assert "Leito EM-03" in html and "Em atendimento: Dr. Fernando Souza" in html
 
 
 def test_paciente_triado_aparece_na_fila_e_sai_ao_marcar_atendido(com_llm):
@@ -124,4 +139,4 @@ def test_abrir_paciente_da_fila_leva_para_a_triagem(com_llm):
 
     assert not at.exception
     assert at.session_state["thread_id"] == thread_id
-    assert "VERMELHO · Emergência" in html_renderizado(at)
+    assert "Vermelho · Emergência" in html_renderizado(at)
